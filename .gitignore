@@ -23,3 +23,6 @@ bin
 
 # Log file
 *.log
+
+# Bat file
+*.bat

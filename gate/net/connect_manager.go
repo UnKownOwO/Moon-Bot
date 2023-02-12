@@ -1,7 +1,8 @@
-package socket
+package net
 
 import (
 	"github.com/gorilla/websocket"
+	"moon-bot/common/mq"
 	"moon-bot/pkg/logger"
 	"net"
 	"net/http"
@@ -25,12 +26,8 @@ var upGrader = websocket.Upgrader{
 	},
 }
 
-type Session struct {
-	conn        *websocket.Conn
-	rawSendChan chan string
-}
-
 type ConnectManager struct {
+	messageQueue   *mq.MessageQueue
 	sessionMap     map[net.Addr]*Session
 	sessionMapLock sync.RWMutex
 }
@@ -39,8 +36,8 @@ func (c *ConnectManager) Close() {
 	c.closeAllSession()
 }
 
-// acceptHandler 接受并创建会话的处理函数
-func (c *ConnectManager) acceptHandler(w http.ResponseWriter, r *http.Request) {
+// handleAccept 接受并创建会话的处理函数
+func (c *ConnectManager) handleAccept(w http.ResponseWriter, r *http.Request) {
 	// 连接提升至websocket
 	conn, err := upGrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -48,8 +45,7 @@ func (c *ConnectManager) acceptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.Info("client connect, address: %v", conn.RemoteAddr())
 	session := &Session{
-		conn:        conn,
-		rawSendChan: make(chan string, 1000),
+		conn: conn,
 	}
 	c.sessionMapLock.RLock()
 	c.sessionMap[conn.RemoteAddr()] = session
@@ -61,40 +57,46 @@ func (c *ConnectManager) acceptHandler(w http.ResponseWriter, r *http.Request) {
 
 // recvHandler 接收消息的处理函数
 func (c *ConnectManager) recvHandler(session *Session) {
-	conn := session.conn
 	for {
-		_ = conn.SetReadDeadline(time.Now().Add(time.Second * ConnRecvTimeout))
-		messageType, data, err := conn.ReadMessage()
+		_ = session.conn.SetReadDeadline(time.Now().Add(time.Second * ConnRecvTimeout))
+		_, data, err := session.conn.ReadMessage()
 		if err != nil {
-			logger.Error("exit session recv loop, address: %v", conn.RemoteAddr())
+			logger.Error("exit session recv loop, address: %v", session.conn.RemoteAddr())
 			c.closeSession(session)
 			break
 		}
-		logger.Info("messageType: %v, data: %v", messageType, string(data))
+		// 转换json为proto消息
+		protoMessage := c.eventJsonToProtoMessage(data)
+		if protoMessage == nil {
+			continue
+		}
+		logger.Debug("[RECV] cmdName: %v, account: %v, address: %v, data: %v", protoMessage.CmdName, session.account, session.conn.RemoteAddr(), protoMessage.PayloadMessage)
+		// 处理消息
+		c.handleMessage(session, protoMessage)
 	}
 }
 
 // sendHandler 发送消息的处理函数
 func (c *ConnectManager) sendHandler(session *Session) {
-	conn := session.conn
 	for {
-		_ = conn.SetWriteDeadline(time.Now().Add(time.Second * ConnSendTimeout))
+		_ = session.conn.SetWriteDeadline(time.Now().Add(time.Second * ConnSendTimeout))
 		// err := conn.WriteMessage(1, []byte("测试测试~"))
 		// if err != nil {
 		// 	logger.Error("exit session send loop, addr: %v", conn.RemoteAddr())
 		// 	c.closeSession(session)
 		// 	break
 		// }
+		time.Sleep(time.Second)
 	}
 }
 
 // closeSession 关闭某一会话
 func (c *ConnectManager) closeSession(session *Session) {
-	conn := session.conn
+	session.state = SessionStateClose
 	c.sessionMapLock.RLock()
-	delete(c.sessionMap, conn.RemoteAddr())
+	delete(c.sessionMap, session.conn.RemoteAddr())
 	c.sessionMapLock.RUnlock()
-	_ = conn.Close()
+	_ = session.conn.Close()
 }
 
 // closeAllSession 关闭全部会话
@@ -106,12 +108,13 @@ func (c *ConnectManager) closeAllSession() {
 	c.sessionMapLock.RUnlock()
 }
 
-func NewConnectManager() *ConnectManager {
+func NewConnectManager(messageQueue *mq.MessageQueue) *ConnectManager {
 	connectManager := new(ConnectManager)
+	connectManager.messageQueue = messageQueue
 	connectManager.sessionMap = make(map[net.Addr]*Session, 100)
 
-	http.HandleFunc("/", connectManager.acceptHandler)
-	http.HandleFunc("/api", connectManager.acceptHandler)
+	http.HandleFunc("/", connectManager.handleAccept)
+	http.HandleFunc("/api", connectManager.handleAccept)
 	go func() {
 		err := http.ListenAndServe("0.0.0.0:8080", nil)
 		if err != nil {

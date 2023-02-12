@@ -9,10 +9,10 @@ import (
 type LogLevel uint8
 
 const (
-	Loglevel_Debug LogLevel = iota // 调试
-	LogLevel_Info                  // 正常
-	LogLevel_Warn                  // 警告
-	LogLevel_Error                 // 错误
+	LoglevelDebug LogLevel = iota // 调试
+	LogLevelInfo                  // 正常
+	LogLevelWarn                  // 警告
+	LogLevelError                 // 错误
 )
 
 type LogInfo struct {
@@ -49,21 +49,21 @@ func InitLogger() {
 }
 
 func Debug(msg string, param ...any) {
-	logInfo := NewLogInfo(Loglevel_Debug, fmt.Sprintf(msg, param...))
+	logInfo := NewLogInfo(LoglevelDebug, fmt.Sprintf(msg, param...))
 	logger.logChan <- logInfo
 }
 
 func Info(msg string, param ...any) {
-	logInfo := NewLogInfo(LogLevel_Info, fmt.Sprintf(msg, param...))
+	logInfo := NewLogInfo(LogLevelInfo, fmt.Sprintf(msg, param...))
 	logger.logChan <- logInfo
 }
 
 func Warn(msg string, param ...any) {
-	logInfo := NewLogInfo(LogLevel_Warn, fmt.Sprintf(msg, param...))
+	logInfo := NewLogInfo(LogLevelWarn, fmt.Sprintf(msg, param...))
 	logger.logChan <- logInfo
 }
 
 func Error(msg string, param ...any) {
-	logInfo := NewLogInfo(LogLevel_Error, fmt.Sprintf(msg, param...))
+	logInfo := NewLogInfo(LogLevelError, fmt.Sprintf(msg, param...))
 	logger.logChan <- logInfo
 }

@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "./;pb";
+
+// 表示消息发送者的信息
+message MessageSender {
+  int64 user_id = 1;   // 发送者 QQ 号
+  string nickname = 2; // 昵称
+  string sex = 3;      // 性别, male 或 female 或 unknown
+  int32 age = 4;       // 年龄
+  // 当私聊类型为群临时会话时的额外字段
+  optional int64 group_id = 5; // 临时群消息来源群号
+  // 如果是群聊
+  optional string card = 6;   // 群名片／备注
+  optional string area = 7;   // 地区
+  optional string level = 8;  // 成员等级
+  optional string role = 9;   // 角色, owner 或 admin 或 member
+  optional string title = 10; // 专属头衔
+}
+
+// 匿名信息
+message MessageAnonymous {
+  int64 id = 1;    // 匿名用户 ID
+  string name = 2; // 匿名用户名称
+  string flag = 3; // 匿名用户 flag, 在调用禁言 API 时需要传入
+}
+
+// 消息事件上报
+message MessageEvent {
+  int64 time = 1;          // 事件发生的时间戳
+  int64 self_id = 2;       // 收到事件的机器人 QQ 号
+  string post_type = 3;    // 上报类型
+  string message_type = 4; // 消息类型
+  // sub_type 在私聊中如果是好友则是 friend, 如果是群临时会话则是 group,
+  // 如果是在群中自身发送则是 group_self
+  // 在群聊中正常消息是 normal, 匿名消息是 anonymous, 系统提示
+  // (如「管理员已禁止群内匿名聊天」 ) 是 notice
+  string sub_type = 5;       // 消息子类型
+  int32 message_id = 6;      // 消息 ID
+  int64 user_id = 7;         // 发送者 QQ 号
+  string message = 8;        // 消息内容
+  string raw_message = 9;    // 原始消息内容
+  int32 font = 10;           // 字体
+  MessageSender sender = 11; // 发送人信息
+  // 私聊消息
+  optional int64 target_id = 12;   // 收到私聊消息的机器人 QQ 号
+  optional int32 temp_source = 13; // 临时会话来源
+  // 群聊消息
+  optional int64 group_id = 14; // 群号
+  optional MessageAnonymous anonymous =
+      15; // 匿名信息, 如果不是匿名消息则为 null
+}

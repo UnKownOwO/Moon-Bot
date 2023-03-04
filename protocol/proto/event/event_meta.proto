@@ -7,7 +7,7 @@ option go_package = "./;pb";
 // 心跳包的 status 字段的 stat 字段
 message MetaStatusStatistics {
   uint64 packet_received = 1;  // 收包数
-  uint64 packet_sent = 2;      // 收包数
+  uint64 packet_sent = 2;      // 发包数
   uint64 packet_lost = 3;      // 丢包数
   uint64 message_received = 4; // 消息接收数
   uint64 message_sent = 5;     // 消息发送数

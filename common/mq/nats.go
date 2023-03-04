@@ -1,11 +1,12 @@
 package mq
 
 import (
+	"moon-bot/pkg/logger"
+	"moon-bot/protocol/cmd"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/nats-io/nats.go"
 	"github.com/vmihailenco/msgpack"
-	"moon-bot/pkg/logger"
-	"moon-bot/protocol/cmd"
 )
 
 type ServerType string
@@ -106,6 +107,11 @@ func (m *MessageQueue) sendHandler() {
 			return
 		}
 	}
+}
+
+// GetNetMsgChan 获取输出消息的管道
+func (m *MessageQueue) GetNetMsgChan() <-chan *NetMsg {
+	return m.netMsgOutputChan
 }
 
 // Send 发送消息

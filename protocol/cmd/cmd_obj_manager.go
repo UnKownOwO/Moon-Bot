@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/golang/protobuf/proto"
 	"moon-bot/pkg/logger"
 	"moon-bot/protocol/pb"
 	"reflect"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type CmdObjManager struct {

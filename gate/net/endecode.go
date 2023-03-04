@@ -2,10 +2,11 @@ package net
 
 import (
 	"encoding/json"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/proto"
 	"moon-bot/pkg/logger"
 	"moon-bot/protocol/cmd"
+
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 )
 
 type ProtoMessage struct {

@@ -49,6 +49,5 @@ message MessageEvent {
   optional int32 temp_source = 13; // 临时会话来源
   // 群聊消息
   optional int64 group_id = 14; // 群号
-  optional MessageAnonymous anonymous =
-      15; // 匿名信息, 如果不是匿名消息则为 null
+  optional MessageAnonymous anonymous = 15; // 匿名信息, 如果不是匿名消息则为 null
 }

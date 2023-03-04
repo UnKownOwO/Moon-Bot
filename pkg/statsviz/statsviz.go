@@ -1,8 +1,9 @@
 package statsviz
 
 import (
-	"github.com/arl/statsviz"
 	"net/http"
+
+	"github.com/arl/statsviz"
 )
 
 // Run 运行性能监测服务

@@ -1,13 +1,14 @@
 package net
 
 import (
-	"github.com/gorilla/websocket"
 	"moon-bot/common/mq"
 	"moon-bot/pkg/logger"
 	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (

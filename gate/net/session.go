@@ -1,12 +1,13 @@
 package net
 
 import (
-	"github.com/gorilla/websocket"
 	"moon-bot/common/constant"
 	"moon-bot/common/mq"
 	"moon-bot/pkg/logger"
 	"moon-bot/protocol/cmd"
 	"moon-bot/protocol/pb"
+
+	"github.com/gorilla/websocket"
 )
 
 type SessionState uint8
@@ -39,19 +40,18 @@ func (c *ConnectManager) handleMessage(session *Session, message *ProtoMessage) 
 		// 设置会话为已连接
 		session.account = metaEvent.SelfId
 		session.state = SessionStateActive
-	default:
-		if session.state != SessionStateActive && message.CmdName != cmd.MetaEvent {
-			logger.Error("session not active packet drop, cmdName: %v, address: %v", message.CmdName, session.conn.RemoteAddr())
-			return
-		}
-		// 转发消息到BS
-		gateMsg := new(mq.GateMsg)
-		gateMsg.Account = session.account
-		gateMsg.CmdName = message.CmdName
-		gateMsg.PayloadMessage = message.PayloadMessage
-		c.messageQueue.Send(mq.ServerTypeBs, &mq.NetMsg{
-			MsgType: mq.MsgTypeGate,
-			GateMsg: gateMsg,
-		})
 	}
+	if session.state != SessionStateActive && message.CmdName != cmd.MetaEvent {
+		logger.Error("session not active packet drop, cmdName: %v, address: %v", message.CmdName, session.conn.RemoteAddr())
+		return
+	}
+	// 转发消息到BS
+	gateMsg := new(mq.GateMsg)
+	gateMsg.Account = session.account
+	gateMsg.CmdName = message.CmdName
+	gateMsg.PayloadMessage = message.PayloadMessage
+	c.messageQueue.Send(mq.ServerTypeBs, &mq.NetMsg{
+		MsgType: mq.MsgTypeGate,
+		GateMsg: gateMsg,
+	})
 }

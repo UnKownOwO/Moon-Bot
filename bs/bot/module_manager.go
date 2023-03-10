@@ -4,21 +4,15 @@ import (
 	"moon-bot/bs/model"
 	"moon-bot/bs/module/hello"
 	"moon-bot/pkg/logger"
-
-	"github.com/golang/protobuf/proto"
 )
 
-type ModuleI interface {
-	InitModule(*model.ModuleConfig) // 初始化模块
-}
-
 type ModuleManager struct {
-	moduleMap map[string]*model.ModuleConfig
+	moduleMap map[string]*model.ModuleInfo
 }
 
 func NewModuleManager() *ModuleManager {
 	r := new(ModuleManager)
-	r.moduleMap = make(map[string]*model.ModuleConfig)
+	r.moduleMap = make(map[string]*model.ModuleInfo)
 
 	r.regAllModule()
 	return r
@@ -26,41 +20,33 @@ func NewModuleManager() *ModuleManager {
 
 // regAllModule 注册所有模块
 func (m *ModuleManager) regAllModule() {
-	m.regModule("hello", "1.0.0", hello.NewHelloModule())
-}
-
-// handleEvent 处理模块事件
-func (m *ModuleManager) handleEvent(cmdName string, bot *model.Bot, payloadMsg proto.Message) {
-	for _, config := range m.moduleMap {
-		handlerFunc, ok := config.EventRouteMap[cmdName]
-		if !ok {
-			logger.Error("module no route, moduleName: %v, cmdName: %v", config.Name, cmdName)
-			return
-		}
-		handlerFunc(bot, payloadMsg)
-	}
+	m.regModule([]*model.ModuleInfo{
+		hello.InitModule(), // 第一个模块
+	}...)
 }
 
 // RegModule 注册模块
-func (m *ModuleManager) regModule(name string, version string, module ModuleI) {
-	config := &model.ModuleConfig{
-		Name:          name,
-		Version:       version,
-		EventRouteMap: make(map[string]model.HandlerFunc),
+func (m *ModuleManager) regModule(moduleInfoList ...*model.ModuleInfo) {
+	for _, info := range moduleInfoList {
+		// 重复校验
+		_, ok := m.moduleMap[info.Name]
+		if ok {
+			logger.Error("module has both, moduleInfo: %v", info)
+			return
+		}
+		// 记录模块
+		m.moduleMap[info.Name] = info
 	}
-	// 空校验
-	if config == nil {
-		logger.Error("config config is nil, name: %v, version: %v", name, version)
-		return
+}
+
+// handleEvent 处理模块事件
+func (m *ModuleManager) handleEvent(eventId uint16, bot *model.Bot, event model.ModuleEvent) {
+	for _, config := range m.moduleMap {
+		eventFunc, ok := config.EventRegMap[eventId]
+		if !ok {
+			logger.Error("module no route, moduleName: %v, eventId: %v", config.Name, eventId)
+			return
+		}
+		eventFunc(bot, event)
 	}
-	// 重复校验
-	_, ok := m.moduleMap[name]
-	if ok {
-		logger.Error("config has both, name: %v, version: %v", name, version)
-		return
-	}
-	// 初始化模块
-	module.InitModule(config)
-	// 记录模块
-	m.moduleMap[config.Name] = config
 }

@@ -34,7 +34,7 @@ func (c *ConnectManager) handleMessage(session *Session, message *ProtoMessage) 
 		}
 		metaEvent := message.PayloadMessage.(*pb.MetaEvent)
 		// 确保为生命周期事件
-		if *metaEvent.MetaEventType != constant.MetaEventTypeLifecycle {
+		if metaEvent.MetaEventType != constant.MetaEventTypeLifecycle {
 			return
 		}
 		// 设置会话为已连接

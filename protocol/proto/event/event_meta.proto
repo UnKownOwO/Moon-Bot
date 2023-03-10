@@ -33,9 +33,9 @@ message MetaEvent {
   int64 self_id = 2;    // 收到事件的机器人 QQ 号
   string post_type = 3; // 上报类型
   // 心跳包
-  optional string meta_event_type = 4; // 上报类型
-  optional MetaStatus status = 5;      // 应用程序状态
-  optional int64 interval = 6; // 距离上一次心跳包的时间(单位是毫秒)
+  string meta_event_type = 4; // 上报类型
+  MetaStatus status = 5;      // 应用程序状态
+  int64 interval = 6; // 距离上一次心跳包的时间(单位是毫秒)
   // 生命周期
-  optional string sub_type = 7; // 子类型
+  string sub_type = 7; // 子类型
 }

@@ -48,9 +48,9 @@ func (c *ConnectManager) handleAccept(w http.ResponseWriter, r *http.Request) {
 	session := &Session{
 		conn: conn,
 	}
-	c.sessionMapLock.RLock()
+	c.sessionMapLock.Lock()
 	c.sessionMap[conn.RemoteAddr()] = session
-	c.sessionMapLock.RUnlock()
+	c.sessionMapLock.Unlock()
 	// 开始收发消息
 	go c.recvHandler(session)
 	go c.sendHandler(session)
@@ -94,19 +94,17 @@ func (c *ConnectManager) sendHandler(session *Session) {
 // closeSession 关闭某一会话
 func (c *ConnectManager) closeSession(session *Session) {
 	session.state = SessionStateClose
-	c.sessionMapLock.RLock()
+	c.sessionMapLock.Lock()
 	delete(c.sessionMap, session.conn.RemoteAddr())
-	c.sessionMapLock.RUnlock()
+	c.sessionMapLock.Unlock()
 	_ = session.conn.Close()
 }
 
 // closeAllSession 关闭全部会话
 func (c *ConnectManager) closeAllSession() {
-	c.sessionMapLock.RLock()
 	for _, s := range c.sessionMap {
 		c.closeSession(s)
 	}
-	c.sessionMapLock.RUnlock()
 }
 
 func NewConnectManager(messageQueue *mq.MessageQueue) *ConnectManager {

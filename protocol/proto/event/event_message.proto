@@ -11,13 +11,13 @@ message MessageSender {
   string sex = 3;      // 性别, male 或 female 或 unknown
   int32 age = 4;       // 年龄
   // 当私聊类型为群临时会话时的额外字段
-  optional int64 group_id = 5; // 临时群消息来源群号
+  int64 group_id = 5; // 临时群消息来源群号
   // 如果是群聊
-  optional string card = 6;   // 群名片／备注
-  optional string area = 7;   // 地区
-  optional string level = 8;  // 成员等级
-  optional string role = 9;   // 角色, owner 或 admin 或 member
-  optional string title = 10; // 专属头衔
+  string card = 6;   // 群名片／备注
+  string area = 7;   // 地区
+  string level = 8;  // 成员等级
+  string role = 9;   // 角色, owner 或 admin 或 member
+  string title = 10; // 专属头衔
 }
 
 // 匿名信息
@@ -45,9 +45,9 @@ message MessageEvent {
   int32 font = 10;           // 字体
   MessageSender sender = 11; // 发送人信息
   // 私聊消息
-  optional int64 target_id = 12;   // 收到私聊消息的机器人 QQ 号
-  optional int32 temp_source = 13; // 临时会话来源
+  int64 target_id = 12;   // 收到私聊消息的机器人 QQ 号
+  int32 temp_source = 13; // 临时会话来源
   // 群聊消息
-  optional int64 group_id = 14; // 群号
-  optional MessageAnonymous anonymous = 15; // 匿名信息, 如果不是匿名消息则为 null
+  int64 group_id = 14; // 群号
+  MessageAnonymous anonymous = 15; // 匿名信息, 如果不是匿名消息则为 null
 }

@@ -48,6 +48,6 @@ message MessageEvent {
   int64 target_id = 12;   // 收到私聊消息的机器人 QQ 号
   int32 temp_source = 13; // 临时会话来源
   // 群聊消息
-  int64 group_id = 14; // 群号
+  int64 group_id = 14;             // 群号
   MessageAnonymous anonymous = 15; // 匿名信息, 如果不是匿名消息则为 null
 }

@@ -19,12 +19,13 @@ const (
 )
 
 type Session struct {
-	conn    *websocket.Conn
-	state   SessionState
-	account int64
+	conn        *websocket.Conn
+	state       SessionState       // 会话状态
+	userId      int64              // 机器人QQ号
+	sendRawChan chan *ProtoMessage // 发送proto消息
 }
 
-// handleMessage 处理消息
+// handleMessage 处理会话消息
 func (c *ConnectManager) handleMessage(session *Session, message *ProtoMessage) {
 	switch message.CmdName {
 	case cmd.MetaEvent:
@@ -37,21 +38,30 @@ func (c *ConnectManager) handleMessage(session *Session, message *ProtoMessage) 
 		if metaEvent.MetaEventType != constant.MetaEventTypeLifecycle {
 			return
 		}
-		// 设置会话为已连接
-		session.account = metaEvent.SelfId
-		session.state = SessionStateActive
+		// 处理会话生命周期
+		c.sessionLifecycle(session, metaEvent)
 	}
 	if session.state != SessionStateActive && message.CmdName != cmd.MetaEvent {
 		logger.Error("session not active packet drop, cmdName: %v, address: %v", message.CmdName, session.conn.RemoteAddr())
 		return
 	}
-	// 转发消息到BS
-	gateMsg := new(mq.GateMsg)
-	gateMsg.Account = session.account
-	gateMsg.CmdName = message.CmdName
-	gateMsg.PayloadMessage = message.PayloadMessage
-	c.messageQueue.Send(mq.ServerTypeBs, &mq.NetMsg{
-		MsgType: mq.MsgTypeGate,
-		GateMsg: gateMsg,
+	// 转发消息到bs
+	protoMsg := new(mq.ProtoMsg)
+	protoMsg.UserId = session.userId
+	protoMsg.CmdName = message.CmdName
+	protoMsg.PayloadMessage = message.PayloadMessage
+	mq.Send(mq.ServerTypeBs, &mq.NetMsg{
+		MsgType:  mq.MsgTypeProto,
+		ProtoMsg: protoMsg,
 	})
+}
+
+// sessionLifecycle 处理会话生命周期
+func (c *ConnectManager) sessionLifecycle(session *Session, msg *pb.MetaEvent) {
+	// 关联session信息 不然包发不出去
+	session.userId = msg.SelfId
+	c.AddSession(session)
+	c.createSessionChan <- session
+	// 设置会话为已连接
+	session.state = SessionStateActive
 }

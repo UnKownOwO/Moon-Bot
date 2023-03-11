@@ -1,4 +1,4 @@
-package model
+package bot
 
 type ModuleEvent interface {
 	ModuleEvent()

@@ -7,3 +7,6 @@ const (
 )
 
 // Action 请求API
+const (
+	SendPrivateMsg = "send_private_msg"
+)

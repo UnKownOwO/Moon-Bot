@@ -1,7 +1,7 @@
 package app
 
 import (
-	"moon-bot/bs/bot"
+	"moon-bot/bs/server"
 	"moon-bot/common/mq"
 	"moon-bot/pkg/logger"
 )
@@ -10,11 +10,11 @@ func Run() {
 	logger.InitLogger()
 	logger.Warn("bs start")
 
-	messageQueue := mq.NewMessageQueue(mq.ServerTypeBs)
-	defer messageQueue.Close()
+	mq.InitMessageQueue(mq.ServerTypeBs)
+	defer mq.Close()
 
-	botManager := bot.NewBotManager(messageQueue)
-	defer botManager.Close()
+	botServer := server.NewBotServer()
+	defer botServer.Close()
 
 	select {}
 }

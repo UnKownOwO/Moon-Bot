@@ -27,9 +27,15 @@ func GetCmdObjManager() *CmdObjManager {
 
 // initMessage 初始化所有消息
 func (c *CmdObjManager) initAllMessage() {
-	// 事件上报
-	c.registerMessage(MessageEvent, &pb.MessageEvent{})
-	c.registerMessage(MetaEvent, &pb.MetaEvent{})
+	{
+		// 事件上报
+		c.registerMessage(MessageEvent, &pb.MessageEvent{})
+		c.registerMessage(MetaEvent, &pb.MetaEvent{})
+	}
+	{
+		// 请求API
+		c.registerMessage(SendPrivateMsg, &pb.SendPrivateMsg{})
+	}
 }
 
 // registerMessage 注册消息

@@ -10,10 +10,10 @@ func Run() {
 	logger.InitLogger()
 	logger.Warn("gate start")
 
-	messageQueue := mq.NewMessageQueue(mq.ServerTypeGate)
-	defer messageQueue.Close()
+	mq.InitMessageQueue(mq.ServerTypeGate)
+	defer mq.Close()
 
-	connectManager := net.NewConnectManager(messageQueue)
+	connectManager := net.NewConnectManager()
 	defer connectManager.Close()
 
 	select {}

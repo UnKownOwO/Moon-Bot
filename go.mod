@@ -8,6 +8,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/nats-io/nats.go v1.24.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
+	golang.org/x/sys v0.5.0
 	google.golang.org/protobuf v1.28.1
 )
 

@@ -9,4 +9,5 @@ const (
 // Action 请求API
 const (
 	SendPrivateMsg = "send_private_msg"
+	SendGroupMsg   = "send_group_msg"
 )

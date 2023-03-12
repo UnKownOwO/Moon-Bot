@@ -11,8 +11,8 @@ import (
 )
 
 // MessageEvent 接收到消息
-func (m *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
-	logger.Debug("消息事件收到准备通知模块")
+func (r *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
+	logger.Debug("bot message event, userId: %v", bot.UserId)
 	msg := payloadMsg.(*pb.MessageEvent)
 
 	messageEvent := &event.MessageEvent{
@@ -33,7 +33,7 @@ func (m *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
 			TempSource:   msg.TempSource,
 		}
 		// 通知模块处理事件
-		eventManager.HandleModuleEvent(event.ModuleEventIdPrivateMessage, bot, moduleEvent)
+		moduleManager.HandleEvent(bot, event.ModuleEventIdPrivateMessage, moduleEvent)
 	case constant.MetaEventTypeGroup:
 		// 群消息
 		moduleEvent := &event.GroupMessageEvent{
@@ -42,6 +42,6 @@ func (m *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
 			Anonymous:    msg.Anonymous,
 		}
 		// 通知模块处理事件
-		eventManager.HandleModuleEvent(event.ModuleEventIdPrivateMessage, bot, moduleEvent)
+		moduleManager.HandleEvent(bot, event.ModuleEventIdGroupMessage, moduleEvent)
 	}
 }

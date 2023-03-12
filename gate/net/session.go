@@ -21,7 +21,7 @@ const (
 type Session struct {
 	conn        *websocket.Conn
 	state       SessionState       // 会话状态
-	userId      int64              // 机器人QQ号
+	userId      int64              // 用户Id
 	sendRawChan chan *ProtoMessage // 发送proto消息
 }
 
@@ -46,13 +46,13 @@ func (c *ConnectManager) handleMessage(session *Session, message *ProtoMessage) 
 		return
 	}
 	// 转发消息到bs
-	protoMsg := new(mq.ProtoMsg)
-	protoMsg.UserId = session.userId
-	protoMsg.CmdName = message.CmdName
-	protoMsg.PayloadMessage = message.PayloadMessage
 	mq.Send(mq.ServerTypeBs, &mq.NetMsg{
-		MsgType:  mq.MsgTypeProto,
-		ProtoMsg: protoMsg,
+		MsgType: mq.MsgTypeProto,
+		ProtoMsg: &mq.ProtoMsg{
+			UserId:         session.userId,
+			CmdName:        message.CmdName,
+			PayloadMessage: message.PayloadMessage,
+		},
 	})
 }
 

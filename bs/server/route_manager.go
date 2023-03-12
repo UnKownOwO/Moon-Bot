@@ -18,30 +18,21 @@ type RouteManager struct {
 
 func NewRouteManager() *RouteManager {
 	r := new(RouteManager)
-	r.routeFuncMap = make(map[string]bot.RouteFunc)
-	// 初始化所有路由
-	r.initRoute()
+	r.routeFuncMap = map[string]bot.RouteFunc{
+		cmd.MessageEvent: r.MessageEvent,
+	}
 
 	return r
 }
 
-// initRoute 初始化路由
-func (m *RouteManager) initRoute() {
-	m.regRoute(cmd.MessageEvent, m.MessageEvent)
-}
-
-// regRoute 注册路由
-func (m *RouteManager) regRoute(cmdName string, routeFunc bot.RouteFunc) {
-	m.routeFuncMap[cmdName] = routeFunc
-}
-
 // doRoute 执行路由
-func (m *RouteManager) doRoute(cmdName string, userId int64, payloadMsg proto.Message) {
-	routeFunc, ok := m.routeFuncMap[cmdName]
+func (r *RouteManager) doRoute(cmdName string, userId int64, payloadMsg proto.Message) {
+	routeFunc, ok := r.routeFuncMap[cmdName]
 	if !ok {
 		logger.Error("no route for msg, cmdName: %v", cmdName)
 		return
 	}
+	// 转发路由处理函数到bot
 	bot.GetManageBot().GetRouteMsgChan() <- &bot.RouteMsg{
 		UserId:     userId,
 		RouteFunc:  routeFunc,
@@ -49,19 +40,27 @@ func (m *RouteManager) doRoute(cmdName string, userId int64, payloadMsg proto.Me
 	}
 }
 
-// HandleNetMsg 处理消息
-func (m *RouteManager) HandleNetMsg(netMsg *mq.NetMsg) {
+// handleNetMsg 处理网络消息
+func (r *RouteManager) handleNetMsg(netMsg *mq.NetMsg) {
 	switch netMsg.MsgType {
 	case mq.MsgTypeProto:
 		protoMsg := netMsg.ProtoMsg
-		if protoMsg.CmdName == cmd.MetaEvent {
-			metaEvent := protoMsg.PayloadMessage.(*pb.MetaEvent)
-			if metaEvent.SubType == constant.MetaEventTypeLifecycleSubTypeConnect {
-				// 用户连接
-				bot.GetManageBot().GetConnectChan() <- metaEvent.SelfId
-				return
+		// 确保消息为生命周期连接
+		if protoMsg.CmdName == cmd.MetaEvent && protoMsg.PayloadMessage.(*pb.MetaEvent).SubType == constant.MetaEventTypeLifecycleSubTypeConnect {
+			// 用户连接
+			bot.GetManageBot().GetUserCtrlMsgChan() <- &bot.UserCtrlMsg{
+				UserCtrlType: bot.UserCtrlTypeConnect,
+				UserId:       protoMsg.UserId,
 			}
+			return
 		}
-		m.doRoute(protoMsg.CmdName, protoMsg.UserId, protoMsg.PayloadMessage)
+		r.doRoute(protoMsg.CmdName, protoMsg.UserId, protoMsg.PayloadMessage)
+	case mq.MsgTypeOffline:
+		// 用户离线消息
+		offlineMsg := netMsg.OfflineMsg
+		bot.GetManageBot().GetUserCtrlMsgChan() <- &bot.UserCtrlMsg{
+			UserCtrlType: bot.UserCtrlTypeDisconnect,
+			UserId:       offlineMsg.UserId,
+		}
 	}
 }

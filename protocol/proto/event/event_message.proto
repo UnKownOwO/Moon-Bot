@@ -50,4 +50,5 @@ message MessageEvent {
   // 群聊消息
   int64 group_id = 14;             // 群号
   MessageAnonymous anonymous = 15; // 匿名信息, 如果不是匿名消息则为 null
+  int64 message_seq = 16; // 消息序列
 }

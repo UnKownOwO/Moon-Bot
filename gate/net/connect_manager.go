@@ -42,17 +42,7 @@ func NewConnectManager() *ConnectManager {
 	r.createSessionChan = make(chan *Session, 100)
 	r.destroySessionChan = make(chan *Session, 100)
 
-	http.HandleFunc("/", r.handleAccept)
-	http.HandleFunc("/api", r.handleAccept)
-	go func() {
-		err := http.ListenAndServe("0.0.0.0:8080", nil)
-		if err != nil {
-			logger.Error("http listen error: %v", err)
-			return
-		}
-	}()
-
-	// 接收mq消息
+	go r.listenServe("0.0.0.0:8080")
 	go r.recvMsgHandler()
 	return r
 }
@@ -79,6 +69,7 @@ func (c *ConnectManager) recvMsgHandler() {
 			// 接收bs的消息
 			switch netMsg.MsgType {
 			case mq.MsgTypeProto:
+				// 发送消息给客户端
 				protoMsg := netMsg.ProtoMsg
 				session, ok := userIdSessionMap[protoMsg.UserId]
 				if !ok {
@@ -89,8 +80,32 @@ func (c *ConnectManager) recvMsgHandler() {
 					CmdName:        protoMsg.CmdName,
 					PayloadMessage: protoMsg.PayloadMessage,
 				}
+			case mq.MsgTypeOffline:
+				// 踢出用户
+				offlineMsg := netMsg.OfflineMsg
+				session, ok := userIdSessionMap[offlineMsg.UserId]
+				if !ok {
+					logger.Error("session not exist, userId: %v", offlineMsg.UserId)
+					return
+				}
+				// 关闭用户的连接
+				c.closeConn(session)
 			}
 		}
+	}
+}
+
+// listenServe 监听服务
+func (c *ConnectManager) listenServe(addr string) {
+	logger.Debug("listen serve start")
+
+	http.HandleFunc("/", c.handleAccept)
+	http.HandleFunc("/api", c.handleAccept)
+
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		logger.Error("http listen error: %v", err)
+		return
 	}
 }
 
@@ -159,11 +174,23 @@ func (c *ConnectManager) sendHandler(session *Session) {
 
 // closeConn 关闭连接
 func (c *ConnectManager) closeConn(session *Session) {
+	if session == nil {
+		return
+	}
 	// 会话已被关闭就没必要再关了
 	if session.state == SessionStateClose {
 		return
 	}
 	session.state = SessionStateClose
+	// 通知bs用户下线
+	if session.userId != 0 {
+		mq.Send(mq.ServerTypeBs, &mq.NetMsg{
+			MsgType: mq.MsgTypeOffline,
+			OfflineMsg: &mq.OfflineMsg{
+				UserId: session.userId,
+			},
+		})
+	}
 	// 删除会话
 	c.DelSession(session)
 	// 关闭连接

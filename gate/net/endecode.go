@@ -60,7 +60,7 @@ func (c *ConnectManager) eventJsonToProtoMessage(data []byte) *ProtoMessage {
 	// 将json的数据转换到proto
 	err = jsonpb.UnmarshalString(string(data), protoObj)
 	if err != nil {
-		logger.Error("unmarshal json to proto error: %v", err)
+		logger.Error("unmarshal json to proto error: %v, data: %v", err, string(data))
 		return nil
 	}
 	protoMessage := &ProtoMessage{

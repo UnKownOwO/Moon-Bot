@@ -35,6 +35,7 @@ func (c *CmdObjManager) initAllMessage() {
 	{
 		// 请求API
 		c.registerMessage(SendPrivateMsg, &pb.SendPrivateMsg{})
+		c.registerMessage(SendGroupMsg, &pb.SendGroupMsg{})
 	}
 }
 

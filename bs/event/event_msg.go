@@ -1,6 +1,8 @@
 package event
 
-import "moon-bot/protocol/pb"
+import (
+	"moon-bot/protocol/pb"
+)
 
 // MessageEvent 消息上报事件
 type MessageEvent struct {

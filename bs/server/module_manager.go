@@ -6,18 +6,21 @@ import (
 	"moon-bot/pkg/logger"
 )
 
-// EventManager 事件管理器
-type EventManager struct {
+// ModuleManager 模块管理器
+type ModuleManager struct {
 }
 
-func NewEventManager() *EventManager {
-	r := new(EventManager)
+func NewModuleManager() *ModuleManager {
+	r := new(ModuleManager)
+
+	// 注册模块
+	module.RegisterModules()
 
 	return r
 }
 
-// HandleModuleEvent 处理模块事件
-func (m *EventManager) HandleModuleEvent(eventId uint16, bot *bot.Bot, event bot.ModuleEvent) {
+// HandleEvent 处理模块事件
+func (m *ModuleManager) HandleEvent(bot *bot.Bot, eventId uint16, event bot.ModuleEvent) {
 	for _, moduleInfo := range module.Modules {
 		eventFunc, ok := moduleInfo.EventRegMap[eventId]
 		if !ok {

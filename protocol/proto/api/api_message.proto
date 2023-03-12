@@ -12,3 +12,11 @@ message SendPrivateMsg {
   string message = 3;  // 主要发送的内容
   bool auto_escape = 4;  // 消息内容是否作为纯文本发送 ( 即不解析 CQ 码 ) , 只在 message 字段是字符串时有效
 }
+
+// 发送群聊消息
+// 终结点：/send_group_msg
+message SendGroupMsg {
+  int64 group_id = 1; // 群号
+  string message = 2; // 要发送的内容
+  bool auto_escape = 3; // 消息内容是否作为纯文本发送 ( 即不解析 CQ 码 ) , 只在 message 字段是字符串时有效
+}

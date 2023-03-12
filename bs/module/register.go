@@ -7,9 +7,9 @@ import (
 
 var Modules []*bot.ModuleInfo
 
-// RegModules 注册模块
-func RegModules() {
+// RegisterModules 注册所有模块
+func RegisterModules() {
 	Modules = []*bot.ModuleInfo{
-		hello.InitModule(), // 第一个模块
+		hello.InitModule(),
 	}
 }

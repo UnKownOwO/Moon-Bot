@@ -3,6 +3,7 @@ package mq
 import (
 	"moon-bot/pkg/logger"
 	"moon-bot/protocol/cmd"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/nats-io/nats.go"
@@ -18,7 +19,7 @@ const (
 
 type MessageQueue struct {
 	natsConn         *nats.Conn
-	serverType       string
+	serverType       ServerType
 	natsMsgChan      chan *nats.Msg
 	netMsgInputChan  chan *NetMsg
 	netMsgOutputChan chan *NetMsg
@@ -29,7 +30,7 @@ var messageQueue *MessageQueue
 func InitMessageQueue(serverType ServerType) {
 	if messageQueue == nil {
 		messageQueue = new(MessageQueue)
-		messageQueue.serverType = string(serverType)
+		messageQueue.serverType = serverType
 
 		// 连接nats
 		nc, err := nats.Connect(nats.DefaultURL)
@@ -41,7 +42,7 @@ func InitMessageQueue(serverType ServerType) {
 
 		// 通道订阅
 		messageQueue.natsMsgChan = make(chan *nats.Msg, 1000)
-		_, err = nc.ChanSubscribe(messageQueue.serverType, messageQueue.natsMsgChan)
+		_, err = nc.ChanSubscribe(string(messageQueue.serverType), messageQueue.natsMsgChan)
 		if err != nil {
 			logger.Error("nats subscribe error: %v", err)
 			return
@@ -104,7 +105,7 @@ func (m *MessageQueue) sendHandler() {
 			continue
 		}
 		// 通过nats发送数据
-		natsMsg := nats.NewMsg(netMsg.TargetServer)
+		natsMsg := nats.NewMsg(string(netMsg.TargetServer))
 		natsMsg.Data = netMsgData
 		err = m.natsConn.PublishMsg(natsMsg)
 		if err != nil {
@@ -121,11 +122,20 @@ func GetNetMsgChan() <-chan *NetMsg {
 
 // Send 发送消息
 func Send(targetServer ServerType, netMsg *NetMsg) {
-	netMsg.TargetServer = string(targetServer)
+	netMsg.TargetServer = targetServer
 	messageQueue.netMsgInputChan <- netMsg
 }
 
 // Close 关闭消息队列
 func Close() {
+	// 等待所有待发送的消息发送完毕
+	for {
+		if len(messageQueue.netMsgInputChan) == 0 {
+			break
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	// 让消息发一会
+	time.Sleep(time.Millisecond * 500)
 	messageQueue.natsConn.Close()
 }

@@ -36,10 +36,10 @@ func (m *ModuleManager) initModule() {
 			m.eventRegInfoMap[eventId] = append(m.eventRegInfoMap[eventId], regInfo)
 		}
 	}
-	// 排序模块注册信息优先级 升序
+	// 排序模块注册信息优先级 降序
 	for _, infoList := range m.eventRegInfoMap {
 		sort.Slice(infoList, func(i, j int) bool {
-			return infoList[i].Priority > infoList[j].Priority
+			return infoList[i].Priority < infoList[j].Priority
 		})
 	}
 }
@@ -48,7 +48,7 @@ func (m *ModuleManager) initModule() {
 func (m *ModuleManager) handleEvent(bot *bot.Bot, eventId uint16, event bot.ModuleEvent) {
 	regInfoList, ok := m.eventRegInfoMap[eventId]
 	if !ok {
-		logger.Error("module no route, eventId: %v", eventId)
+		// logger.Debug("module no route, eventId: %v", eventId)
 		return
 	}
 	// 执行每一个处理函数

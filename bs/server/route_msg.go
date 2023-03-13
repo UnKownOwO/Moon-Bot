@@ -12,7 +12,7 @@ import (
 
 // MessageEvent 接收到消息
 func (r *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
-	logger.Debug("bot message event, userId: %v", bot.UserId)
+	logger.Debug("bot message event, userId: %v, msg: %v", bot.UserId, payloadMsg)
 	msg := payloadMsg.(*pb.MessageEvent)
 
 	messageEvent := &event.MessageEvent{

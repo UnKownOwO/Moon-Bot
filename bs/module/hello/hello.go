@@ -13,14 +13,19 @@ type HelloModule struct {
 
 func InitModule() *bot.ModuleInfo {
 	helloModule := new(HelloModule)
-	logger.Debug("hello模块创建")
 
 	return &bot.ModuleInfo{
 		Name:    "hello",
 		Version: "1.0.0",
-		EventRegMap: map[uint16]bot.EventFunc{
-			event.ModuleEventIdPrivateMessage: helloModule.PrivateMessageEvent,
-			event.ModuleEventIdGroupMessage:   helloModule.GroupMessageEvent,
+		EventRegMap: map[uint16]*bot.EventRegInfo{
+			event.ModuleEventIdPrivateMessage: {
+				HandleFunc: helloModule.PrivateMessageEvent,
+				Priority:   bot.EventPriorityMiddle,
+			},
+			event.ModuleEventIdGroupMessage: {
+				HandleFunc: helloModule.GroupMessageEvent,
+				Priority:   bot.EventPriorityLowest,
+			},
 		},
 	}
 }

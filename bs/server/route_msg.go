@@ -33,7 +33,7 @@ func (r *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
 			TempSource:   msg.TempSource,
 		}
 		// 通知模块处理事件
-		moduleManager.HandleEvent(bot, event.ModuleEventIdPrivateMessage, moduleEvent)
+		moduleManager.handleEvent(bot, event.ModuleEventIdPrivateMessage, moduleEvent)
 	case constant.MetaEventTypeGroup:
 		// 群消息
 		moduleEvent := &event.GroupMessageEvent{
@@ -42,6 +42,6 @@ func (r *RouteManager) MessageEvent(bot *bot.Bot, payloadMsg proto.Message) {
 			Anonymous:    msg.Anonymous,
 		}
 		// 通知模块处理事件
-		moduleManager.HandleEvent(bot, event.ModuleEventIdGroupMessage, moduleEvent)
+		moduleManager.handleEvent(bot, event.ModuleEventIdGroupMessage, moduleEvent)
 	}
 }

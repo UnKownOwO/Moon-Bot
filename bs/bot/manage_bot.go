@@ -135,11 +135,11 @@ func (m *ManageBot) closeBot(userId int64) {
 // checkOffBot 检查离线的bot并清理
 func (m *ManageBot) checkOffBot() {
 	logger.Debug("clean offline bot start")
-	for userId, bot := range m.botMap {
+	for _, bot := range m.botMap {
 		// 离线时间等于0代表未离线
 		if bot.exitTime != 0 && bot.exitTime < time.Now().Unix() {
 			logger.Debug("bot clean, userId: %v, exitTime: %v", bot.UserId, bot.exitTime)
-			m.closeBot(userId)
+			m.closeBot(bot.UserId)
 		}
 	}
 	logger.Debug("clean offline bot finish")

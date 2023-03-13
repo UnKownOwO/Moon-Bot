@@ -27,6 +27,7 @@ var upGrader = websocket.Upgrader{
 }
 
 type ConnectManager struct {
+	openState bool // 网关开放状态
 	// 会话
 	sessionAddrMap     map[net.Addr]*Session
 	sessionUserIdMap   map[int64]*Session
@@ -42,13 +43,34 @@ func NewConnectManager() *ConnectManager {
 	r.createSessionChan = make(chan *Session, 100)
 	r.destroySessionChan = make(chan *Session, 100)
 
-	go r.listenServe("0.0.0.0:8080")
-	go r.recvMsgHandler()
+	r.run()
 	return r
+}
+
+func (c *ConnectManager) run() {
+	// 运行服务
+	go c.listenServe("0.0.0.0:8080")
+	go c.recvMsgHandler()
+	// 通知bs gate开启
+	mq.Send(mq.ServerTypeBs, &mq.NetMsg{
+		MsgType: mq.MsgTypeServer,
+		ServerMsg: &mq.ServerMsg{
+			ActionType:   mq.ServerMsgActionTypeStart,
+			TargetServer: mq.ServerTypeGate,
+		},
+	})
 }
 
 func (c *ConnectManager) Close() {
 	c.closeAllConn()
+	// 通知bs gate关闭
+	mq.Send(mq.ServerTypeBs, &mq.NetMsg{
+		MsgType: mq.MsgTypeServer,
+		ServerMsg: &mq.ServerMsg{
+			ActionType:   mq.ServerMsgActionTypeExit,
+			TargetServer: mq.ServerTypeGate,
+		},
+	})
 }
 
 // recvMsgHandler 接收mq消息并处理
@@ -74,7 +96,7 @@ func (c *ConnectManager) recvMsgHandler() {
 				session, ok := userIdSessionMap[protoMsg.UserId]
 				if !ok {
 					logger.Error("session not exist, userId: %v", protoMsg.UserId)
-					return
+					continue
 				}
 				session.sendRawChan <- &ProtoMessage{
 					CmdName:        protoMsg.CmdName,
@@ -86,10 +108,37 @@ func (c *ConnectManager) recvMsgHandler() {
 				session, ok := userIdSessionMap[offlineMsg.UserId]
 				if !ok {
 					logger.Error("session not exist, userId: %v", offlineMsg.UserId)
-					return
+					continue
 				}
 				// 关闭用户的连接
-				c.closeConn(session)
+				c.closeConn(session, false)
+			case mq.MsgTypeServer:
+				// 服务器消息
+				serverMsg := netMsg.ServerMsg
+				// 确保是bs的消息
+				if serverMsg.TargetServer != mq.ServerTypeBs {
+					continue
+				}
+				switch serverMsg.ActionType {
+				case mq.ServerMsgActionTypeStart:
+					logger.Warn("bs start, gate open")
+					// 开放网关
+					c.openState = true
+					// 通知bs 已接收到bs启动的消息
+					mq.Send(mq.ServerTypeBs, &mq.NetMsg{
+						MsgType: mq.MsgTypeServer,
+						ServerMsg: &mq.ServerMsg{
+							ActionType:   mq.ServerMsgActionTypeStartAck,
+							TargetServer: mq.ServerTypeGate,
+						},
+					})
+				case mq.ServerMsgActionTypeExit:
+					logger.Warn("bs exit, gate close")
+					// 关闭网关
+					c.openState = false
+					// 断开所有连接
+					c.closeAllConn()
+				}
 			}
 		}
 	}
@@ -116,6 +165,12 @@ func (c *ConnectManager) handleAccept(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	// 网关没开放则阻止连接
+	if !c.openState {
+		logger.Error("gate not open, addr: %v", conn.RemoteAddr())
+		_ = conn.Close()
+		return
+	}
 	logger.Info("client connect, addr: %v", conn.RemoteAddr())
 	session := &Session{
 		conn:        conn,
@@ -135,7 +190,7 @@ func (c *ConnectManager) recvHandler(session *Session) {
 		_, data, err := session.conn.ReadMessage()
 		if err != nil {
 			logger.Error("exit recv loop, conn read error: %v, addr: %v", err, session.conn.RemoteAddr())
-			c.closeConn(session)
+			c.closeConn(session, true)
 			break
 		}
 		// 转换json为proto消息
@@ -156,7 +211,7 @@ func (c *ConnectManager) sendHandler(session *Session) {
 		protoMessage, ok := <-session.sendRawChan
 		if !ok {
 			logger.Error("exit send loop, send chan close, addr: %v", session.conn.RemoteAddr())
-			c.closeConn(session)
+			c.closeConn(session, true)
 			break
 		}
 		// 转换为json数据
@@ -166,14 +221,14 @@ func (c *ConnectManager) sendHandler(session *Session) {
 		err := session.conn.WriteMessage(1, jsonData)
 		if err != nil {
 			logger.Error("exit send loop, conn write error: %v, addr: %v", err, session.conn.RemoteAddr())
-			c.closeConn(session)
+			c.closeConn(session, true)
 			break
 		}
 	}
 }
 
 // closeConn 关闭连接
-func (c *ConnectManager) closeConn(session *Session) {
+func (c *ConnectManager) closeConn(session *Session, send bool) {
 	if session == nil {
 		return
 	}
@@ -183,7 +238,7 @@ func (c *ConnectManager) closeConn(session *Session) {
 	}
 	session.state = SessionStateClose
 	// 通知bs用户下线
-	if session.userId != 0 {
+	if session.userId != 0 && send {
 		mq.Send(mq.ServerTypeBs, &mq.NetMsg{
 			MsgType: mq.MsgTypeOffline,
 			OfflineMsg: &mq.OfflineMsg{
@@ -207,7 +262,7 @@ func (c *ConnectManager) closeAllConn() {
 	}
 	c.sessionMapLock.RUnlock()
 	for _, session := range sessionList {
-		c.closeConn(session)
+		c.closeConn(session, false)
 	}
 }
 

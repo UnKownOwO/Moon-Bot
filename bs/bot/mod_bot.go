@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/json"
 	"moon-bot/common/mq"
 	"moon-bot/pkg/logger"
 
@@ -26,7 +25,7 @@ func (m *ModBot) loadData(bot *Bot) {
 	m.bot = bot
 	m.initData()
 
-	// 路由消息处理
+	// 运行bot主循环
 	go m.botMainLoop()
 }
 
@@ -34,27 +33,15 @@ func (m *ModBot) loadData(bot *Bot) {
 func (m *ModBot) saveData() {
 }
 
-// runBotMainLoop 运行bot主循环
-func (m *ModBot) runBotMainLoop() {
-	for count := 0; count < 100000; count++ {
-		logger.Warn("bot route loop start, count: %v", count)
-		if m.botMainLoop() {
-			return
-		}
-		logger.Warn("bot route loop stop, count: %v", count)
-	}
-}
-
 // botMainLoop 路由消息主循环
-func (m *ModBot) botMainLoop() bool {
+func (m *ModBot) botMainLoop() {
 	// panic捕获
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Error("!!! BOT MAIN LOOP PANIC !!!")
 			logger.Error("error: %v", err)
 			logger.Error("stack: %v", logger.Stack())
-			motherfuckerBotInfo, _ := json.Marshal(m.bot)
-			logger.Error("the motherfucker bot info: %v", string(motherfuckerBotInfo))
+			logger.Error("the motherfucker bot userId: %v", m.bot.UserId)
 			GetManageBot().kickBot(m.bot.UserId)
 		}
 	}()
@@ -65,10 +52,9 @@ func (m *ModBot) botMainLoop() bool {
 			routeMsg.RouteFunc(m.bot, routeMsg.PayloadMsg)
 		case <-m.closeChan:
 			// 关闭bot
-			return true
+			return
 		}
 	}
-	return false
 }
 
 // 对外接口
@@ -84,9 +70,4 @@ func (b *Bot) SendMsg(cmdName string, payloadMsg proto.Message) {
 			PayloadMessage: payloadMsg,
 		},
 	})
-}
-
-// GetRouteMsgChan 获取路由消息管道
-func (b *Bot) GetRouteMsgChan() chan<- *RouteMsg {
-	return b.GetModBot().routeMsgChan
 }

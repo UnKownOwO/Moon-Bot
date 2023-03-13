@@ -35,11 +35,6 @@ func (b *Bot) initMod() {
 	}
 }
 
-// close bot被清理时将执行关闭
-func (b *Bot) close() {
-	b.GetModBot().closeChan <- true
-}
-
 // getMod 获取某一模块
 func (b *Bot) getMod(modId uint8) ModBase {
 	return b.modManage[modId]

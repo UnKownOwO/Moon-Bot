@@ -48,9 +48,9 @@ func (m *ManageBot) Run() {
 				m.offlineBot(userCtrlMsg.UserId)
 			case UserCtrlTypeServerClose:
 				// 服务器关闭
-				for _, bot := range m.botMap {
-					// 踢出所有用户
-					m.kickBot(bot.UserId)
+				for userId := range m.botMap {
+					// 关闭所有用户
+					m.closeBot(userId)
 				}
 			}
 		case routeMsg := <-m.routeMsgChan:
@@ -60,7 +60,7 @@ func (m *ManageBot) Run() {
 				logger.Error("bot not exist, userId: %v", routeMsg.UserId)
 				continue
 			}
-			bot.GetRouteMsgChan() <- routeMsg
+			bot.GetModBot().routeMsgChan <- routeMsg
 		case <-checkOffTicker.C:
 			// 清理离线bot
 			m.checkOffBot()
@@ -110,6 +110,7 @@ func (m *ManageBot) offlineBot(userId int64) {
 
 // kickBot 踢出bot
 func (m *ManageBot) kickBot(userId int64) {
+	m.closeBot(userId)
 	// 发送消息到gate关闭连接
 	mq.Send(mq.ServerTypeGate, &mq.NetMsg{
 		MsgType: mq.MsgTypeOffline,
@@ -119,18 +120,29 @@ func (m *ManageBot) kickBot(userId int64) {
 	})
 }
 
+// closeBot 关闭bot
+func (m *ManageBot) closeBot(userId int64) {
+	bot, ok := m.botMap[userId]
+	if !ok {
+		logger.Error("bot not exist, userId: %v", userId)
+		return
+	}
+	// 发送消息关闭bot协程
+	bot.GetModBot().closeChan <- true
+	delete(m.botMap, bot.UserId)
+}
+
 // checkOffBot 检查离线的bot并清理
 func (m *ManageBot) checkOffBot() {
-	logger.Debug("check offline bot start")
-	for _, bot := range m.botMap {
+	logger.Debug("clean offline bot start")
+	for userId, bot := range m.botMap {
 		// 离线时间等于0代表未离线
 		if bot.exitTime != 0 && bot.exitTime < time.Now().Unix() {
 			logger.Debug("bot clean, userId: %v, exitTime: %v", bot.UserId, bot.exitTime)
-			bot.close()
-			delete(m.botMap, bot.UserId)
+			m.closeBot(userId)
 		}
 	}
-	logger.Debug("check offline bot finish")
+	logger.Debug("clean offline bot finish")
 }
 
 // GetRouteMsgChan 获取路由消息管道

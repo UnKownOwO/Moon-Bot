@@ -105,7 +105,7 @@ func (m *MessageQueue) sendHandler() {
 			continue
 		}
 		// 通过nats发送数据
-		natsMsg := nats.NewMsg(string(netMsg.TargetServer))
+		natsMsg := nats.NewMsg(string(netMsg.targetServer))
 		natsMsg.Data = netMsgData
 		err = m.natsConn.PublishMsg(natsMsg)
 		if err != nil {
@@ -122,7 +122,7 @@ func GetNetMsgChan() <-chan *NetMsg {
 
 // Send 发送消息
 func Send(targetServer ServerType, netMsg *NetMsg) {
-	netMsg.TargetServer = targetServer
+	netMsg.targetServer = targetServer
 	messageQueue.netMsgInputChan <- netMsg
 }
 

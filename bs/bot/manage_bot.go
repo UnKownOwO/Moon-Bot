@@ -23,8 +23,8 @@ func GetManageBot() *ManageBot {
 	if manageBot == nil {
 		manageBot = new(ManageBot)
 		manageBot.botMap = make(map[int64]*Bot)
-		manageBot.userCtrlMsgChan = make(chan *UserCtrlMsg)
-		manageBot.routeMsgChan = make(chan *RouteMsg, 100)
+		manageBot.userCtrlMsgChan = make(chan *UserCtrlMsg, 100)
+		manageBot.routeMsgChan = make(chan *RouteMsg, 1000)
 	}
 	return manageBot
 }
